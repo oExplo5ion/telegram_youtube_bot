@@ -1,5 +1,6 @@
 from aiogram import Bot, Dispatcher, types, executor
-from aiogram.types import CallbackQuery
+from aiogram.types import CallbackQuery, InputMediaVideo
+from api_token import API_TOKEN
 from pytube import Stream
 from botstate import BotState
 from pytube import YouTube
@@ -7,10 +8,8 @@ from aiogram.utils.callback_data import CallbackData
 import logging
 import inline_keyboard_markupHelper as InlineKeyboardMarkupHelper
 from callback_data import buttons_callback
-import youtube_helper
 
 # fields 
-API_TOKEN = ''
 state = BotState.IDLE
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)
@@ -46,9 +45,10 @@ async def _download_video(call: CallbackQuery, callback_data: dict):
         return
     
     itag = callback_data.get('itag')
-    file = youtube_helper.download(youtube=youtube, itag=itag, path='videos')
-
-    # TODO: upload a file to user and delete it from disk afterwards
+    stream = youtube.streams.get_by_itag(itag)
+    
+    media = [InputMediaVideo(media=stream.url)]
+    await call.message.reply_media_group(media, reply=False)
 
 
 @dp.callback_query_handler(buttons_callback.filter(evt=InlineKeyboardMarkupHelper.EVT_CANCEL))
@@ -59,7 +59,7 @@ async def _hide_keyboard(call: CallbackQuery, callback_data: dict):
 async def _send_start(message: types.Message):
     global state
     state = BotState.WAITING_FOR_LINK
-    await message.answer(text='кидай ссылку видео в YouTube')
+    await message.answer(text='YouTube video link')
 
 # funcs
 async def _parse_link(message: types.Message):
@@ -72,6 +72,4 @@ async def _parse_link(message: types.Message):
 
     keyboard = InlineKeyboardMarkupHelper.create_quality_keyboard(high_itag=itag_high, low_itag=itag_low)
 
-    global state
-    state = BotState.WAITING_FOR_RESOLUTION
-    await message.answer(text=youtube.title, reply_markup=keyboard)
+    await message.answer(text=youtube.title + '\n' + '', reply_markup=keyboard)
