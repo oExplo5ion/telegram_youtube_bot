@@ -1,25 +1,25 @@
-from aiogram import Bot, Dispatcher, types, executor
+from aiogram import Bot, Dispatcher, types
 from aiogram.types import CallbackQuery, InputMediaVideo
+from aiogram.utils.exceptions import InvalidHTTPUrlContent
 from api_token import API_TOKEN
-from pytube import Stream
 from botstate import BotState
 from pytube import YouTube
 from aiogram.utils.callback_data import CallbackData
+from callback_data import buttons_callback
 import logging
 import inline_keyboard_markupHelper as InlineKeyboardMarkupHelper
-from callback_data import buttons_callback
+import firebase_helper
 
 # fields 
 state = BotState.IDLE
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)
 logging.basicConfig(level=logging.INFO)
-quality_callback = CallbackData('quality','url')
 youtube = None
+youtube_url = None
 
 # commands
 START   = '/start'
-HELP    = '/help'
 
 # Keyboard buttons data
 QUALITY_HIGH = 'quality_hight'
@@ -43,12 +43,18 @@ async def _download_video(call: CallbackQuery, callback_data: dict):
     global youtube
     if youtube is None:
         return
+    if youtube_url is None:
+        return
     
     itag = callback_data.get('itag')
     stream = youtube.streams.get_by_itag(itag)
     
     media = [InputMediaVideo(media=stream.url)]
-    await call.message.reply_media_group(media, reply=False)
+    try:
+        message = await call.message.reply_media_group(media, reply=False)
+        firebase_helper.write_row(call.message.from_user.id, message[0], youtube_url)
+    except InvalidHTTPUrlContent:
+        await call.message.reply('Coud not get file', reply=False)
 
 
 @dp.callback_query_handler(buttons_callback.filter(evt=InlineKeyboardMarkupHelper.EVT_CANCEL))
@@ -63,6 +69,9 @@ async def _send_start(message: types.Message):
 
 # funcs
 async def _parse_link(message: types.Message):
+    global youtube_url
+    youtube_url = message.text
+
     global youtube
     youtube = YouTube(message.text)
     streams = youtube.streams

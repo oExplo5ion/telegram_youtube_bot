@@ -6,6 +6,13 @@ name = "pypi"
 [packages]
 aiogram = "*"
 pytube = "*"
+firebase-admin = "*"
+firebase = "*"
+python-jwt = "*"
+gcloud = "*"
+sseclient = "*"
+pycryptodome = "*"
+requests-toolbelt = "*"
 
 [dev-packages]
 

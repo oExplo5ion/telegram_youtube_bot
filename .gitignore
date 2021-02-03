@@ -139,3 +139,5 @@ cython_debug/
 
 # blocked files
 api_token.py
+firebase_credentials.py
+serviceAccountKey.json
